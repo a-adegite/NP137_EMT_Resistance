@@ -65,18 +65,18 @@ sig_genes <- subset(
 # Save raw DGE analysis result
 write.csv(
   as.data.frame(res),
-  here("bulk_rnaseq", "mouse_PTEN", "result", "DGE_results_raw.csv")
+  here("bulk_rnaseq", "mouse_PTEN", "result", "differential_gene_expression", "DGE_results_raw.csv")
 )
 
 # Save all genes with shrunken LFC
 write.csv(
   res_df,
-  here("bulk_rnaseq", "mouse_PTEN", "result", "DGE_results_all_shrunken.csv")
+  here("bulk_rnaseq", "mouse_PTEN", "result", "differential_gene_expression", "DGE_results_all_shrunken.csv")
 )
 
 # Save significant genes only
 write.csv(
   sig_genes,
-  here("bulk_rnaseq", "mouse_PTEN", "result", "DGE_lfcs_significant.csv")
+  here("bulk_rnaseq", "mouse_PTEN", "result", "differential_gene_expression", "DGE_lfcs_significant.csv")
 )
 
