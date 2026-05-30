@@ -1,6 +1,7 @@
 # Load libraries
 library(here)
-library(biomaRt)
+library(AnnotationDbi)
+library(EnsDb.Mmusculus.v79)
 
 # Load count data
 count <- read.csv(
@@ -24,7 +25,8 @@ DGE_raw_lfcs <- read.csv(
   here(
     "bulk_rnaseq", "mouse_PTEN", "result",
     "differential_gene_expression", "DGE_results_all_shrunken.csv"
-  )
+  ),
+  row.names = 1
 )
 
 # Significant genes (Log2FoldChange Shrunken)
@@ -36,25 +38,48 @@ sig_gene_lfcs <- read.csv(
   row.names = 1
 )
 
+# Create EnsemblID field
+DGE_raw$GENEID <- gsub("\\..*$", "", rownames(DGE_raw))
+DGE_raw_lfcs$GENEID <- gsub("\\..*$", "", rownames(DGE_raw_lfcs))
+sig_gene_lfcs$GENEID <- gsub("\\..*$", "", rownames(sig_gene_lfcs))
+
 # Clean ensembl id
 ensemblID <-  rownames(count)
 ensemblID <- gsub("\\..*$", "", ensemblID)
 
-# Select database and create connection to ensembl
-ensembl <- useEnsembl(
-  biomart = "genes",
-  dataset = "mmusculus_gene_ensembl"
+# Create EnsDb.Mmusculus.v79 object
+edb <- EnsDb.Mmusculus.v79
+
+#keytypes(edb)
+
+gene_info_all <- AnnotationDbi::select(
+  edb,
+  keys = unique(ensemblID),
+  keytype = "GENEID",
+  columns = c(
+    "GENEID",
+    "SYMBOL",
+    "GENEBIOTYPE"
+  )
 )
 
-gene_info_all <- getBM(
-  attributes = c(
-    "ensembl_gene_id",
-    "external_gene_name",
-    "gene_biotype",
-    "description"
-  ),
-  filters = "ensembl_gene_id",
-  values = unique(ensemblID),
-  mart = ensembl
+# Merge annotations with DGE Results
+DGE_raw_annot <- merge(DGE_raw, gene_info_all, by = "GENEID")
+DGE_raw_lfcs_annot <- merge(DGE_raw_lfcs, gene_info_all, by = "GENEID")
+sig_gene_lfcs_annot <-merge(sig_gene_lfcs, gene_info_all, by = "GENEID")
+
+# Save annotated DGE result
+write.csv(
+  DGE_raw_annot,
+  here("bulk_rnaseq", "mouse_PTEN", "result", "differential_gene_expression", "DGE_results_raw_annotated.csv")
 )
 
+write.csv(
+  DGE_raw_lfcs_annot,
+  here("bulk_rnaseq", "mouse_PTEN", "result", "differential_gene_expression", "DGE_results_all_shrunken_annotated.csv")
+)
+
+write.csv(
+  sig_gene_lfcs_annot,
+  here("bulk_rnaseq", "mouse_PTEN", "result", "differential_gene_expression", "DGE_lfcs_significant_annotated.csv")
+)
